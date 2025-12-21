@@ -1,0 +1,19 @@
+[project]
+name = "py-gemini-watermark-remover"
+version = "0.1.0"
+description = "Python implementation of a Gemini watermark removal tool using mathematical reverse alpha blending"
+requires-python = ">=3.8"
+dependencies = [
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+]
+
+[project.scripts]
+gemini-watermark = "cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
