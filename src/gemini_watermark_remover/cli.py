@@ -8,7 +8,7 @@ A command-line tool to remove Gemini watermarks from images.
 import argparse
 import sys
 from pathlib import Path
-from watermark_remover import WatermarkRemover, WatermarkSize, process_image, process_directory
+from .watermark_remover import WatermarkRemover, WatermarkSize, process_image, process_directory
 
 
 __version__ = "0.1.0"

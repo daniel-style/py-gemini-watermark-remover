@@ -25,7 +25,7 @@ The tool uses **real alpha maps** extracted from Gemini's actual watermark imple
 
 ## Watermark Size Detection Rules
 
-Critical logic in `watermark_remover.py:41-58`:
+Critical logic in `src/gemini_watermark_remover/watermark_remover.py:41-58`:
 - **LARGE (96×96, 64px margin)**: When BOTH width AND height > 1024
 - **SMALL (48×48, 32px margin)**: Otherwise (including exactly 1024×1024)
 
@@ -50,40 +50,40 @@ Dependencies: `opencv-python>=4.8.0` and `numpy>=1.24.0` (defined in `pyproject.
 ### Run Tests
 ```bash
 # Using uv
-uv run python test.py
+uv run python tests/test.py
 
 # Or activate venv manually
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-python test.py
+python tests/test.py
 ```
 Creates test images in `test_output/`, adds/removes watermarks, and calculates PSNR quality metrics.
 
 ### CLI Usage
 ```bash
 # Using uv (recommended)
-uv run python cli.py -i watermarked.jpg -o clean.jpg
+uv run python -m gemini_watermark_remover.cli -i watermarked.jpg -o clean.jpg
 
 # Or activate venv manually
 source .venv/bin/activate
-python cli.py -i watermarked.jpg -o clean.jpg
+python -m gemini_watermark_remover.cli -i watermarked.jpg -o clean.jpg
 
 # Process single image
-uv run python cli.py -i watermarked.jpg -o clean.jpg
+uv run python -m gemini_watermark_remover.cli -i watermarked.jpg -o clean.jpg
 
 # Batch process directory
-uv run python cli.py -i ./input_folder/ -o ./output_folder/
+uv run python -m gemini_watermark_remover.cli -i ./input_folder/ -o ./output_folder/
 
 # In-place edit (overwrites original)
-uv run python cli.py image.jpg
+uv run python -m gemini_watermark_remover.cli image.jpg
 
 # Force watermark size
-uv run python cli.py -i image.jpg -o clean.jpg --force-small
-uv run python cli.py -i image.jpg -o clean.jpg --force-large
+uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --force-small
+uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --force-large
 ```
 
 ## Code Architecture
 
-### Core Module: `watermark_remover.py` (~400 lines)
+### Core Module: `src/gemini_watermark_remover/watermark_remover.py` (~400 lines)
 
 **WatermarkRemover Class** (main engine):
 - `__init__(logo_value=235.0)`: Initialize with logo brightness
@@ -103,7 +103,7 @@ uv run python cli.py -i image.jpg -o clean.jpg --force-large
 - `process_image(input_path, output_path, ...)`: Single file processing
 - `process_directory(input_dir, output_dir, ...)`: Batch processing with count tracking
 
-### CLI Interface: `cli.py` (~240 lines)
+### CLI Interface: `src/gemini_watermark_remover/cli.py` (~240 lines)
 
 Argument parser with two modes:
 - **Simple mode**: Single positional argument (in-place edit)
@@ -111,7 +111,7 @@ Argument parser with two modes:
 
 Supports both file and directory processing with automatic detection.
 
-### Test Suite: `test.py` (~220 lines)
+### Test Suite: `tests/test.py` (~220 lines)
 
 Comprehensive test coverage:
 - Creates gradient test images of various sizes
@@ -156,7 +156,7 @@ Creates a circular gradient mask centered on the logo with power curve smoothing
 ## Testing Strategy
 
 When modifying the algorithm:
-1. Run `uv run python test.py` to verify basic functionality
+1. Run `uv run python tests/test.py` to verify basic functionality
 2. Check PSNR values remain high (>30 dB is good, >50 dB is excellent)
 3. Visually inspect test images in `test_output/` directory
 4. Test edge cases: exactly 1024×1024, forced size overrides

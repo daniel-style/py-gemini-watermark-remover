@@ -32,11 +32,6 @@ uv.lock
 
 # Test outputs
 test_output/
-*.jpg
-*.jpeg
-*.png
-*.webp
-*.bmp
 
 # IDE
 .vscode/

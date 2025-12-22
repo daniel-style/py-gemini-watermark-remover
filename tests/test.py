@@ -8,7 +8,9 @@ Creates test images and demonstrates functionality.
 import cv2
 import numpy as np
 from pathlib import Path
-from watermark_remover import WatermarkRemover, WatermarkSize, process_image
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+from gemini_watermark_remover import WatermarkRemover, WatermarkSize, process_image
 
 
 def create_test_image(width: int, height: int, output_path: str):
