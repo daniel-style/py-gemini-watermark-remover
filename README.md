@@ -14,8 +14,8 @@ A Python implementation of Gemini watermark removal tool using mathematical reve
 
 | Original (Watermarked) | Cleaned |
 |:---:|:---:|
-| ![example1](examples/example1.jpg) | ![example1_cleaned](examples/example1_cleaned.jpg) |
-| ![example2](examples/example2.jpg) | ![example2_cleaned](examples/example2_cleaned.jpg) |
+| <img src="examples/example1.jpg" width="400"> | <img src="examples/example1_cleaned.jpg" width="400"> |
+| <img src="examples/example2.jpg" width="400"> | <img src="examples/example2_cleaned.jpg" width="400"> |
 
 ## Features
 

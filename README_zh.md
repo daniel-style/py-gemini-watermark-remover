@@ -14,8 +14,8 @@ Python 实现的 Gemini 水印移除工具，使用数学精确的反向 Alpha �
 
 | 原图（带水印） | 处理后 |
 |:---:|:---:|
-| ![example1](examples/example1.jpg) | ![example1_cleaned](examples/example1_cleaned.jpg) |
-| ![example2](examples/example2.jpg) | ![example2_cleaned](examples/example2_cleaned.jpg) |
+| <img src="examples/example1.jpg" width="400"> | <img src="examples/example1_cleaned.jpg" width="400"> |
+| <img src="examples/example2.jpg" width="400"> | <img src="examples/example2_cleaned.jpg" width="400"> |
 
 ## 特性
 
