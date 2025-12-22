@@ -1,5 +1,9 @@
 # Gemini Watermark Remover - Python Edition
 
+[![PyPI version](https://badge.fury.io/py/py-gemini-watermark-remover.svg)](https://pypi.org/project/py-gemini-watermark-remover/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Python implementation of Gemini watermark removal tool using mathematical reverse alpha blending.
 
 > This project is a Python port of [GeminiWatermarkTool](https://github.com/allenk/GeminiWatermarkTool).
@@ -23,9 +27,15 @@ A Python implementation of Gemini watermark removal tool using mathematical reve
 
 ## Installation
 
-### Using uv (Recommended)
+### Using pip (Recommended)
 
-[uv](https://docs.astral.sh/uv/) is a fast Python package and project manager.
+```bash
+pip install py-gemini-watermark-remover
+```
+
+### From Source
+
+Using [uv](https://docs.astral.sh/uv/) (fast Python package manager):
 
 ```bash
 # Install uv (if not already installed)
@@ -50,7 +60,26 @@ uv run python -m gemini_watermark_remover.cli -i examples/example2.jpg -o exampl
 
 ### CLI Usage
 
-Using uv (recommended):
+After installation via pip:
+
+```bash
+# Simple mode - in-place edit (overwrites original!)
+gemini-watermark watermarked.jpg
+
+# Specify output file
+gemini-watermark -i watermarked.jpg -o clean.jpg
+
+# Batch process directory
+gemini-watermark -i ./input_folder/ -o ./output_folder/
+
+# Force watermark size
+gemini-watermark -i image.jpg -o clean.jpg --force-small
+
+# Show banner
+gemini-watermark -i image.jpg -o clean.jpg --banner
+```
+
+Or using the module directly:
 
 ```bash
 # Simple mode - in-place edit (overwrites original!)
@@ -69,7 +98,7 @@ uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --force-
 uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --banner
 ```
 
-Or using traditional method:
+Or from source with Python:
 
 ```bash
 # After activating virtual environment

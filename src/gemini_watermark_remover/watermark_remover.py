@@ -38,9 +38,15 @@ class WatermarkRemover:
         self.max_alpha = 0.99  # Avoid division by near-zero
 
         # Load real alpha maps from Gemini watermark captures
-        script_dir = Path(__file__).parent.parent.parent
-        bg_48_path = script_dir / 'assets' / 'bg_48.png'
-        bg_96_path = script_dir / 'assets' / 'bg_96.png'
+        script_dir = Path(__file__).parent
+        bg_48_path = script_dir / 'bg_48.png'
+        bg_96_path = script_dir / 'bg_96.png'
+
+        # Fallback to assets directory for development
+        if not bg_48_path.exists():
+            script_dir = Path(__file__).parent.parent.parent / 'assets'
+            bg_48_path = script_dir / 'bg_48.png'
+            bg_96_path = script_dir / 'bg_96.png'
 
         if bg_48_path.exists() and bg_96_path.exists():
             self.alpha_map_small = self.calculate_alpha_map(cv2.imread(str(bg_48_path)))

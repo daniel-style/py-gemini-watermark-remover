@@ -1,5 +1,9 @@
 # Gemini Watermark Remover - Python Edition
 
+[![PyPI version](https://badge.fury.io/py/py-gemini-watermark-remover.svg)](https://pypi.org/project/py-gemini-watermark-remover/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Python 实现的 Gemini 水印移除工具，使用数学精确的反向 Alpha 混合算法。
 
 > 本项目是 [GeminiWatermarkTool](https://github.com/allenk/GeminiWatermarkTool) 的 Python 版本实现。
@@ -23,9 +27,15 @@ Python 实现的 Gemini 水印移除工具，使用数学精确的反向 Alpha �
 
 ## 安装
 
-### 使用 uv（推荐）
+### 使用 pip（推荐）
 
-[uv](https://docs.astral.sh/uv/) 是一个极快的 Python 包和项目管理器。
+```bash
+pip install py-gemini-watermark-remover
+```
+
+### 从源码安装
+
+使用 [uv](https://docs.astral.sh/uv/)（极快的 Python 包管理器）：
 
 ```bash
 # 安装 uv（如果还没有安装）
@@ -51,7 +61,26 @@ uv run python -m gemini_watermark_remover.cli -i examples/example2.jpg -o exampl
 
 ### 命令行使用
 
-使用 uv（推荐）：
+通过 pip 安装后：
+
+```bash
+# 最简单方式 - 就地编辑（会覆盖原文件！）
+gemini-watermark watermarked.jpg
+
+# 指定输出文件
+gemini-watermark -i watermarked.jpg -o clean.jpg
+
+# 批量处理目录
+gemini-watermark -i ./input_folder/ -o ./output_folder/
+
+# 强制指定水印大小
+gemini-watermark -i image.jpg -o clean.jpg --force-small
+
+# 显示横幅
+gemini-watermark -i image.jpg -o clean.jpg --banner
+```
+
+或使用模块方式：
 
 ```bash
 # 最简单方式 - 就地编辑（会覆盖原文件！）
@@ -70,7 +99,7 @@ uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --force-
 uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --banner
 ```
 
-或者使用传统方式：
+或从源码使用：
 
 ```bash
 # 激活虚拟环境后
