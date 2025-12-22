@@ -24,6 +24,7 @@ Python 实现的 Gemini 水印移除工具，使用数学精确的反向 Alpha �
 - 📦 最小依赖：仅需 OpenCV 和 NumPy
 - 🔄 批量处理：支持单文件和目录批处理
 - 🎨 自动检测：自动识别水印尺寸（48x48 或 96x96）
+- 🌐 远程URL支持：直接处理网络图片，无需手动下载
 
 ## 安装
 
@@ -78,6 +79,9 @@ gemini-watermark -i image.jpg -o clean.jpg --force-small
 
 # 显示横幅
 gemini-watermark -i image.jpg -o clean.jpg --banner
+
+# 直接处理远程URL
+gemini-watermark -i "https://example.com/image.webp" -o clean.webp
 ```
 
 或使用模块方式：
@@ -97,6 +101,9 @@ uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --force-
 
 # 显示横幅
 uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --banner
+
+# 直接处理远程URL
+uv run python -m gemini_watermark_remover.cli -i "https://example.com/image.webp" -o clean.webp
 ```
 
 或从源码使用：
@@ -115,6 +122,9 @@ import cv2
 
 # 方式 1: 使用便捷函数处理单个文件
 process_image('watermarked.jpg', 'clean.jpg')
+
+# 方式 1b: 直接处理远程URL
+process_image('https://example.com/image.webp', 'clean.webp')
 
 # 方式 2: 使用便捷函数处理目录
 success, failed = process_directory('./input/', './output/')
@@ -171,7 +181,7 @@ cv2.imwrite('output.jpg', cleaned, [cv2.IMWRITE_JPEG_QUALITY, 100])
 | 参数 | 说明 |
 |------|------|
 | `<file>` | 简单模式：就地编辑图片 |
-| `-i, --input` | 输入文件或目录 |
+| `-i, --input` | 输入文件、目录或URL |
 | `-o, --output` | 输出文件或目录 |
 | `-r, --remove` | 移除水印（默认行为）|
 | `--add` | 添加水印（测试用）|
@@ -242,12 +252,16 @@ class WatermarkRemover:
 
 ```python
 def process_image(
-    input_path: Union[str, Path],
+    input_path: Union[str, Path],  # 本地路径或URL
     output_path: Union[str, Path],
     remove: bool = True,
     force_size: Optional[WatermarkSize] = None,
     logo_value: float = 235.0
 ) -> bool
+
+def is_url(path: str) -> bool  # 检查路径是否为URL
+
+def load_image_from_url(url: str) -> Optional[np.ndarray]  # 从URL加载图片
 
 def process_directory(
     input_dir: Union[str, Path],

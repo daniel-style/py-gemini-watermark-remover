@@ -24,6 +24,7 @@ A Python implementation of Gemini watermark removal tool using mathematical reve
 - 📦 Minimal dependencies: Only requires OpenCV and NumPy
 - 🔄 Batch processing: Supports single file and directory processing
 - 🎨 Auto detection: Automatically detects watermark size (48x48 or 96x96)
+- 🌐 Remote URL support: Process images directly from URLs without downloading
 
 ## Installation
 
@@ -77,6 +78,9 @@ gemini-watermark -i image.jpg -o clean.jpg --force-small
 
 # Show banner
 gemini-watermark -i image.jpg -o clean.jpg --banner
+
+# Process remote URL directly
+gemini-watermark -i "https://example.com/image.webp" -o clean.webp
 ```
 
 Or using the module directly:
@@ -96,6 +100,9 @@ uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --force-
 
 # Show banner
 uv run python -m gemini_watermark_remover.cli -i image.jpg -o clean.jpg --banner
+
+# Process remote URL directly
+uv run python -m gemini_watermark_remover.cli -i "https://example.com/image.webp" -o clean.webp
 ```
 
 Or from source with Python:
@@ -114,6 +121,9 @@ import cv2
 
 # Method 1: Use convenience function for single file
 process_image('watermarked.jpg', 'clean.jpg')
+
+# Method 1b: Process remote URL directly
+process_image('https://example.com/image.webp', 'clean.webp')
 
 # Method 2: Use convenience function for directory
 success, failed = process_directory('./input/', './output/')
@@ -170,7 +180,7 @@ cv2.imwrite('output.jpg', cleaned, [cv2.IMWRITE_JPEG_QUALITY, 100])
 | Argument | Description |
 |----------|-------------|
 | `<file>` | Simple mode: edit image in-place |
-| `-i, --input` | Input file or directory |
+| `-i, --input` | Input file, directory, or URL |
 | `-o, --output` | Output file or directory |
 | `-r, --remove` | Remove watermark (default behavior) |
 | `--add` | Add watermark (for testing) |
@@ -241,12 +251,16 @@ class WatermarkRemover:
 
 ```python
 def process_image(
-    input_path: Union[str, Path],
+    input_path: Union[str, Path],  # Local path or URL
     output_path: Union[str, Path],
     remove: bool = True,
     force_size: Optional[WatermarkSize] = None,
     logo_value: float = 235.0
 ) -> bool
+
+def is_url(path: str) -> bool  # Check if path is a URL
+
+def load_image_from_url(url: str) -> Optional[np.ndarray]  # Load image from URL
 
 def process_directory(
     input_dir: Union[str, Path],
