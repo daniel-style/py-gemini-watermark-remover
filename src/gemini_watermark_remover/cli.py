@@ -8,7 +8,7 @@ A command-line tool to remove Gemini watermarks from images.
 import argparse
 import sys
 from pathlib import Path
-from .watermark_remover import WatermarkRemover, WatermarkSize, process_image, process_directory
+from .watermark_remover import WatermarkRemover, WatermarkSize, process_image, process_directory, is_url
 
 
 __version__ = "0.1.0"
@@ -182,8 +182,31 @@ Examples:
         parser.print_help()
         return 1
 
-    input_path = Path(args.input)
+    input_str = args.input
     output_path = Path(args.output)
+
+    # Check if input is URL
+    if is_url(input_str):
+        if not args.quiet:
+            print(f"Processing remote image...")
+
+        success = process_image(
+            input_str,
+            output_path,
+            remove=remove_watermark,
+            force_size=force_size,
+            logo_value=args.logo_value
+        )
+
+        if success:
+            if not args.quiet:
+                print("✓ Done!")
+            return 0
+        else:
+            print("✗ Failed!", file=sys.stderr)
+            return 1
+
+    input_path = Path(input_str)
 
     if not input_path.exists():
         print(f"Error: Input path not found: {input_path}", file=sys.stderr)

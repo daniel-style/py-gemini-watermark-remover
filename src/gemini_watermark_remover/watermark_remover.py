@@ -7,6 +7,8 @@ Core watermark removal engine using reverse alpha blending.
 
 import cv2
 import numpy as np
+import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import Optional, Tuple, Union
 from enum import Enum
@@ -312,16 +314,48 @@ class WatermarkRemover:
         return result
 
 
+def is_url(path: str) -> bool:
+    """Check if the path is a URL."""
+    return path.startswith(('http://', 'https://'))
+
+
+def load_image_from_url(url: str) -> Optional[np.ndarray]:
+    """
+    Load image from URL directly into memory.
+
+    Args:
+        url: Image URL
+
+    Returns:
+        Image as numpy array (BGR format), or None if failed
+    """
+    try:
+        # Set User-Agent to avoid some server restrictions
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = np.frombuffer(resp.read(), np.uint8)
+            image = cv2.imdecode(data, cv2.IMREAD_COLOR)
+            return image
+    except urllib.error.URLError as e:
+        print(f"Error: Failed to download image: {e.reason}")
+        return None
+    except Exception as e:
+        print(f"Error: Failed to load image from URL: {e}")
+        return None
+
+
 def process_image(input_path: Union[str, Path],
                  output_path: Union[str, Path],
                  remove: bool = True,
                  force_size: Optional[WatermarkSize] = None,
                  logo_value: float = 255.0) -> bool:
     """
-    Process a single image file.
+    Process a single image file or URL.
 
     Args:
-        input_path: Path to input image
+        input_path: Path to input image or URL
         output_path: Path to output image
         remove: If True, remove watermark; if False, add watermark
         force_size: Optional forced watermark size
@@ -331,17 +365,27 @@ def process_image(input_path: Union[str, Path],
         True if successful, False otherwise
     """
     try:
-        input_path = Path(input_path)
+        input_str = str(input_path)
         output_path = Path(output_path)
 
-        # Read image
-        image = cv2.imread(str(input_path), cv2.IMREAD_COLOR)
-        if image is None:
-            print(f"Error: Failed to load image: {input_path}")
-            return False
+        # Check if input is URL
+        if is_url(input_str):
+            print(f"Downloading: {input_str[:80]}...")
+            image = load_image_from_url(input_str)
+            if image is None:
+                return False
+            input_name = input_str.split('/')[-1].split('?')[0] or 'remote_image'
+        else:
+            input_path = Path(input_str)
+            # Read image from local file
+            image = cv2.imread(str(input_path), cv2.IMREAD_COLOR)
+            if image is None:
+                print(f"Error: Failed to load image: {input_path}")
+                return False
+            input_name = input_path.name
 
         height, width = image.shape[:2]
-        print(f"Processing: {input_path.name} ({width}x{height})")
+        print(f"Processing: {input_name} ({width}x{height})")
 
         # Process image
         engine = WatermarkRemover(logo_value=logo_value)
@@ -376,7 +420,7 @@ def process_image(input_path: Union[str, Path],
         return True
 
     except Exception as e:
-        print(f"Error processing {input_path}: {e}")
+        print(f"Error processing {input_str}: {e}")
         return False
 
 
