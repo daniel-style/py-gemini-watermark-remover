@@ -191,7 +191,8 @@ class WatermarkRemover:
 
     def remove_watermark(self, image: np.ndarray,
                         force_size: Optional[WatermarkSize] = None,
-                        alpha_map: Optional[np.ndarray] = None) -> np.ndarray:
+                        alpha_map: Optional[np.ndarray] = None,
+                        auto_detect: bool = True) -> np.ndarray:
         """
         Remove watermark from image.
 
@@ -199,9 +200,10 @@ class WatermarkRemover:
             image: Input image (BGR format)
             force_size: Optional forced watermark size
             alpha_map: Optional custom alpha map (if None, uses default)
+            auto_detect: If True, detect watermark before processing (default: True)
 
         Returns:
-            Image with watermark removed
+            Image with watermark removed (or original if no watermark detected)
         """
         if image is None or image.size == 0:
             raise ValueError("Empty image provided")
@@ -211,6 +213,12 @@ class WatermarkRemover:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         elif image.shape[2] == 4:
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+
+        # Auto-detect watermark if enabled
+        if auto_detect:
+            has_watermark = self.detect_watermark(image, force_size=force_size)
+            if not has_watermark:
+                return image.copy()
 
         # Make a copy to avoid modifying original
         result = image.copy()
@@ -469,17 +477,7 @@ def process_image(input_path: Union[str, Path],
         engine = WatermarkRemover(logo_value=logo_value)
 
         if remove:
-            # Auto-detect watermark if enabled
-            if auto_detect:
-                has_watermark = engine.detect_watermark(image, force_size=force_size)
-                if not has_watermark:
-                    print(f"No Gemini watermark detected, copying original")
-                    result = image
-                else:
-                    print(f"Gemini watermark detected, removing...")
-                    result = engine.remove_watermark(image, force_size=force_size)
-            else:
-                result = engine.remove_watermark(image, force_size=force_size)
+            result = engine.remove_watermark(image, force_size=force_size, auto_detect=auto_detect)
         else:
             result = engine.add_watermark(image, force_size=force_size)
 
