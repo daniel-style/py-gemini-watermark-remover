@@ -1,6 +1,6 @@
 [project]
 name = "py-gemini-watermark-remover"
-version = "0.2.1"
+version = "0.2.2"
 description = "Python implementation of a Gemini watermark removal tool using mathematical reverse alpha blending"
 readme = "README.md"
 requires-python = ">=3.8"

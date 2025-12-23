@@ -11,17 +11,21 @@ from pathlib import Path
 from .watermark_remover import WatermarkRemover, WatermarkSize, process_image, process_directory, is_url
 
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 
 def print_banner():
     """Print ASCII banner"""
     banner = r"""
-   ____                _       _
-  / ___| ___ _ __ ___ (_)_ __ (_)
- | |  _ / _ \ '_ ` _ \| | '_ \| |
- | |_| |  __/ | | | | | | | | | |
-  \____|\___|_| |_| |_|_|_| |_|_|
+╔═╗┌─┐┌┬┐┬┌┐┌┬             
+║ ╦├┤ ││││││││             
+╚═╝└─┘┴ ┴┴┘└┘┴             
+╦ ╦┌─┐┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐┬┌─
+║║║├─┤ │ ├┤ ├┬┘│││├─┤├┬┘├┴┐
+╚╩╝┴ ┴ ┴ └─┘┴└─┴ ┴┴ ┴┴└─┴ ┴
+╦═╗┌─┐┌┬┐┌─┐┬  ┬┌─┐┬─┐     
+╠╦╝├┤ ││││ │└┐┌┘├┤ ├┬┘     
+╩╚═└─┘┴ ┴└─┘ └┘ └─┘┴└─     
 
  Watermark Remover - Python Edition
  Version: {}
