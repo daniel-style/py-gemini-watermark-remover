@@ -255,6 +255,82 @@ class WatermarkRemover:
 
         return result
 
+    def detect_watermark(self, image: np.ndarray,
+                        force_size: Optional[WatermarkSize] = None) -> bool:
+        """
+        Detect if image has Gemini watermark in bottom-right corner.
+
+        Uses template matching with real alpha maps and brightness analysis.
+
+        Args:
+            image: Input image (BGR format)
+            force_size: Optional forced watermark size to check
+
+        Returns:
+            True if watermark detected, False otherwise
+        """
+        if image is None or image.size == 0:
+            return False
+
+        # Ensure BGR format
+        if len(image.shape) == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        elif image.shape[2] == 4:
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+
+        height, width = image.shape[:2]
+        size = force_size or self.get_watermark_size(width, height)
+
+        # Get watermark position
+        x, y = self.get_watermark_position(width, height, size)
+        w, h, _ = size.value
+
+        # Check bounds
+        if x < 0 or y < 0 or x + w > width or y + h > height:
+            return False
+
+        # Extract ROI
+        roi = image[y:y+h, x:x+w]
+
+        # Convert to grayscale for analysis
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY).astype(np.float32)
+
+        # Get alpha map for this size
+        if size == WatermarkSize.SMALL and self.alpha_map_small is not None:
+            alpha_map = self.alpha_map_small
+        elif size == WatermarkSize.LARGE and self.alpha_map_large is not None:
+            alpha_map = self.alpha_map_large
+        else:
+            alpha_map = self.create_default_alpha_map(size)
+
+        # Method 1: Template correlation with alpha map
+        # Gemini watermark creates brightness pattern matching alpha map
+        alpha_normalized = (alpha_map * 255).astype(np.float32)
+        correlation = np.corrcoef(gray.flatten(), alpha_normalized.flatten())[0, 1]
+
+        # Method 2: Check brightness in high-alpha regions
+        high_alpha_mask = alpha_map > 0.3
+        if np.any(high_alpha_mask):
+            mean_brightness = np.mean(gray[high_alpha_mask])
+            brightness_variance = np.std(gray[high_alpha_mask])
+        else:
+            mean_brightness = 0
+            brightness_variance = 0
+
+        # Method 3: Edge detection - watermark has soft edges
+        edges = cv2.Canny(roi, 50, 150)
+        edge_density = np.sum(edges > 0) / edges.size
+
+        # Decision logic
+        has_watermark = (
+            correlation > 0.3 and  # Positive correlation with alpha pattern
+            mean_brightness > 180 and  # Bright (white logo)
+            brightness_variance < 40 and  # Relatively uniform
+            edge_density < 0.15  # Soft edges, not sharp content
+        )
+
+        return has_watermark
+
     def add_watermark(self, image: np.ndarray,
                      force_size: Optional[WatermarkSize] = None,
                      alpha_map: Optional[np.ndarray] = None) -> np.ndarray:
@@ -350,7 +426,8 @@ def process_image(input_path: Union[str, Path],
                  output_path: Union[str, Path],
                  remove: bool = True,
                  force_size: Optional[WatermarkSize] = None,
-                 logo_value: float = 255.0) -> bool:
+                 logo_value: float = 255.0,
+                 auto_detect: bool = True) -> bool:
     """
     Process a single image file or URL.
 
@@ -360,6 +437,7 @@ def process_image(input_path: Union[str, Path],
         remove: If True, remove watermark; if False, add watermark
         force_size: Optional forced watermark size
         logo_value: Logo brightness value
+        auto_detect: If True, detect watermark before processing
 
     Returns:
         True if successful, False otherwise
@@ -391,7 +469,17 @@ def process_image(input_path: Union[str, Path],
         engine = WatermarkRemover(logo_value=logo_value)
 
         if remove:
-            result = engine.remove_watermark(image, force_size=force_size)
+            # Auto-detect watermark if enabled
+            if auto_detect:
+                has_watermark = engine.detect_watermark(image, force_size=force_size)
+                if not has_watermark:
+                    print(f"No Gemini watermark detected, copying original")
+                    result = image
+                else:
+                    print(f"Gemini watermark detected, removing...")
+                    result = engine.remove_watermark(image, force_size=force_size)
+            else:
+                result = engine.remove_watermark(image, force_size=force_size)
         else:
             result = engine.add_watermark(image, force_size=force_size)
 
@@ -428,7 +516,8 @@ def process_directory(input_dir: Union[str, Path],
                      output_dir: Union[str, Path],
                      remove: bool = True,
                      force_size: Optional[WatermarkSize] = None,
-                     logo_value: float = 235.0) -> Tuple[int, int]:
+                     logo_value: float = 235.0,
+                     auto_detect: bool = True) -> Tuple[int, int, int]:
     """
     Process all images in a directory.
 
@@ -438,16 +527,17 @@ def process_directory(input_dir: Union[str, Path],
         remove: If True, remove watermark; if False, add watermark
         force_size: Optional forced watermark size
         logo_value: Logo brightness value
+        auto_detect: If True, detect watermark before processing
 
     Returns:
-        Tuple of (successful_count, failed_count)
+        Tuple of (successful_count, skipped_count, failed_count)
     """
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
     if not input_dir.is_dir():
         print(f"Error: Input directory does not exist: {input_dir}")
-        return (0, 0)
+        return (0, 0, 0)
 
     # Supported image formats
     extensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp']
@@ -460,20 +550,22 @@ def process_directory(input_dir: Union[str, Path],
 
     if not image_files:
         print(f"No image files found in {input_dir}")
-        return (0, 0)
+        return (0, 0, 0)
 
     print(f"Found {len(image_files)} image(s) to process")
 
     success_count = 0
+    skip_count = 0
     fail_count = 0
 
     for image_file in image_files:
         output_file = output_dir / image_file.name
 
-        if process_image(image_file, output_file, remove, force_size, logo_value):
+        result = process_image(image_file, output_file, remove, force_size, logo_value, auto_detect)
+        if result:
             success_count += 1
         else:
             fail_count += 1
 
     print(f"\nProcessing complete: {success_count} succeeded, {fail_count} failed")
-    return (success_count, fail_count)
+    return (success_count, skip_count, fail_count)

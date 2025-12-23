@@ -105,6 +105,13 @@ Examples:
         help='Logo brightness value (default: 255.0 = white)'
     )
 
+    # Detection options
+    parser.add_argument(
+        '--no-detect',
+        action='store_true',
+        help='Disable automatic watermark detection (process all images)'
+    )
+
     # Output options
     parser.add_argument(
         '-v', '--verbose',
@@ -165,7 +172,8 @@ Examples:
             input_path,
             remove=remove_watermark,
             force_size=force_size,
-            logo_value=args.logo_value
+            logo_value=args.logo_value,
+            auto_detect=not args.no_detect
         )
 
         if success:
@@ -195,7 +203,8 @@ Examples:
             output_path,
             remove=remove_watermark,
             force_size=force_size,
-            logo_value=args.logo_value
+            logo_value=args.logo_value,
+            auto_detect=not args.no_detect
         )
 
         if success:
@@ -222,7 +231,8 @@ Examples:
             output_path,
             remove=remove_watermark,
             force_size=force_size,
-            logo_value=args.logo_value
+            logo_value=args.logo_value,
+            auto_detect=not args.no_detect
         )
 
         if success:
@@ -238,12 +248,13 @@ Examples:
         if not args.quiet:
             print(f"Batch processing: {input_path} -> {output_path}")
 
-        success_count, fail_count = process_directory(
+        success_count, skip_count, fail_count = process_directory(
             input_path,
             output_path,
             remove=remove_watermark,
             force_size=force_size,
-            logo_value=args.logo_value
+            logo_value=args.logo_value,
+            auto_detect=not args.no_detect
         )
 
         if fail_count == 0:
