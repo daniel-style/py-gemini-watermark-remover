@@ -332,8 +332,8 @@ class WatermarkRemover:
         # Decision logic
         has_watermark = (
             correlation > 0.3 and  # Positive correlation with alpha pattern
-            mean_brightness > 180 and  # Bright (white logo)
-            brightness_variance < 40 and  # Relatively uniform
+            mean_brightness > 130 and  # Bright (white logo) - lowered to detect on darker backgrounds
+            brightness_variance < 50 and  # Relatively uniform - relaxed for varied backgrounds
             edge_density < 0.15  # Soft edges, not sharp content
         )
 

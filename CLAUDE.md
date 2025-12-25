@@ -31,6 +31,15 @@ Critical logic in `src/gemini_watermark_remover/watermark_remover.py:41-58`:
 
 The watermark is always positioned in the bottom-right corner with the specified margin.
 
+## Watermark Detection
+
+The tool includes automatic watermark detection (can be disabled with `--no-detect`). Detection logic at line 266-340 uses three methods:
+1. **Template correlation**: Compares ROI with alpha map pattern (threshold: > 0.3)
+2. **Brightness analysis**: Checks mean brightness in high-alpha regions (threshold: > 130, variance < 50)
+3. **Edge density**: Watermarks have soft edges (threshold: < 0.15)
+
+All three conditions must be met for watermark detection. Thresholds are tuned to detect watermarks on both light and dark backgrounds (e.g., basketball courts, forests, etc.).
+
 ## Development Commands
 
 ### Install Dependencies
