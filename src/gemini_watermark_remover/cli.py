@@ -11,7 +11,7 @@ from pathlib import Path
 from .watermark_remover import WatermarkRemover, WatermarkSize, process_image, process_directory, is_url
 
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 
 def print_banner():
