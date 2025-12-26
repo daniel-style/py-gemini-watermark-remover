@@ -33,12 +33,15 @@ The watermark is always positioned in the bottom-right corner with the specified
 
 ## Watermark Detection
 
-The tool includes automatic watermark detection (can be disabled with `--no-detect`). Detection logic at line 266-340 uses three methods:
-1. **Template correlation**: Compares ROI with alpha map pattern (threshold: > 0.3)
-2. **Brightness analysis**: Checks mean brightness in high-alpha regions (threshold: > 130, variance < 50)
-3. **Edge density**: Watermarks have soft edges (threshold: < 0.15)
+The tool includes automatic watermark detection (can be disabled with `--no-detect`). Detection logic at line 268-450 uses a multi-method scoring system:
 
-All three conditions must be met for watermark detection. Thresholds are tuned to detect watermarks on both light and dark backgrounds (e.g., basketball courts, forests, etc.).
+1. **Differential analysis**: Simulates watermark removal and checks if difference pattern correlates with alpha map (up to 60 points)
+2. **Template correlation**: Compares ROI brightness with alpha map pattern (up to 20 points)
+3. **Brightness analysis**: Checks brightness difference between high/low alpha regions and uniformity (up to 25 points)
+4. **Edge density**: Watermarks have soft edges, penalizes sharp content (up to 10 points, -10 penalty)
+5. **Gradient direction**: Watermarks have radial gradient from center (up to 10 points)
+
+Detection threshold: score >= 50. This scoring system provides robust detection on various backgrounds (light, dark, textured).
 
 ## Development Commands
 
