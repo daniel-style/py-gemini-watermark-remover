@@ -24,6 +24,7 @@ Python 实现的 Gemini 水印移除工具，使用数学精确的反向 Alpha �
 - 📦 最小依赖：仅需 OpenCV 和 NumPy
 - 🔄 批量处理：支持单文件和目录批处理
 - 🎨 自动检测：自动识别水印尺寸（48x48 或 96x96）
+- 🔍 智能检测：多方法评分系统检测水印是否存在（可用 `--no-detect` 禁用）
 - 🌐 远程URL支持：直接处理网络图片，无需手动下载
 
 ## 安装
@@ -187,6 +188,7 @@ cv2.imwrite('output.jpg', cleaned, [cv2.IMWRITE_JPEG_QUALITY, 100])
 | `--add` | 添加水印（测试用）|
 | `--force-small` | 强制使用 48×48 水印 |
 | `--force-large` | 强制使用 96×96 水印 |
+| `--no-detect` | 跳过水印检测，始终处理 |
 | `--logo-value` | Logo 亮度值（默认：235.0）|
 | `-v, --verbose` | 详细输出 |
 | `-q, --quiet` | 静默模式 |

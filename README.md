@@ -24,6 +24,7 @@ A Python implementation of Gemini watermark removal tool using mathematical reve
 - 📦 Minimal dependencies: Only requires OpenCV and NumPy
 - 🔄 Batch processing: Supports single file and directory processing
 - 🎨 Auto detection: Automatically detects watermark size (48x48 or 96x96)
+- 🔍 Smart detection: Multi-method scoring system to detect if watermark exists (can be disabled with `--no-detect`)
 - 🌐 Remote URL support: Process images directly from URLs without downloading
 
 ## Installation
@@ -186,6 +187,7 @@ cv2.imwrite('output.jpg', cleaned, [cv2.IMWRITE_JPEG_QUALITY, 100])
 | `--add` | Add watermark (for testing) |
 | `--force-small` | Force 48×48 watermark |
 | `--force-large` | Force 96×96 watermark |
+| `--no-detect` | Skip watermark detection, always process |
 | `--logo-value` | Logo brightness value (default: 235.0) |
 | `-v, --verbose` | Enable verbose output |
 | `-q, --quiet` | Quiet mode |
