@@ -268,7 +268,11 @@ class WatermarkRemover:
         """
         Detect if image has Gemini watermark in bottom-right corner.
 
-        Uses template matching with real alpha maps and brightness analysis.
+        Uses a robust multi-method scoring system combining:
+        1. Differential analysis (simulated removal)
+        2. Template correlation with alpha maps
+        3. Brightness pattern analysis
+        4. Edge density analysis
 
         Args:
             image: Input image (BGR format)
@@ -311,33 +315,136 @@ class WatermarkRemover:
         else:
             alpha_map = self.create_default_alpha_map(size)
 
-        # Method 1: Template correlation with alpha map
-        # Gemini watermark creates brightness pattern matching alpha map
+        # Initialize score
+        score = 0.0
+
+        # =================================================================
+        # Method 1: Differential Analysis (most reliable)
+        # Try removing watermark and check if the difference matches alpha pattern
+        # =================================================================
+        recovered = self.remove_watermark_from_region(roi, alpha_map)
+        diff = roi.astype(np.float32) - recovered.astype(np.float32)
+        diff_gray = np.mean(np.abs(diff), axis=2)  # Average across channels
+
+        # Check if difference pattern correlates with alpha map
+        # Real watermarks create differences that match alpha pattern
+        diff_flat = diff_gray.flatten()
+        alpha_flat = alpha_map.flatten()
+
+        # Only compute correlation if there's variance in both
+        if np.std(diff_flat) > 1.0 and np.std(alpha_flat) > 0.01:
+            diff_correlation = np.corrcoef(diff_flat, alpha_flat)[0, 1]
+            if not np.isnan(diff_correlation):
+                if diff_correlation > 0.7:
+                    score += 35
+                elif diff_correlation > 0.5:
+                    score += 25
+                elif diff_correlation > 0.3:
+                    score += 15
+
+        # Check if difference magnitude is reasonable for watermark
+        # Watermark creates noticeable but not extreme differences
+        max_diff = np.max(diff_gray)
+        mean_diff_high_alpha = np.mean(diff_gray[alpha_map > 0.3]) if np.any(alpha_map > 0.3) else 0
+
+        if 5 < mean_diff_high_alpha < 150:
+            score += 15
+        if 10 < max_diff < 200:
+            score += 10
+
+        # =================================================================
+        # Method 2: Template Correlation
+        # Watermark creates brightness pattern matching alpha map
+        # =================================================================
         alpha_normalized = (alpha_map * 255).astype(np.float32)
-        correlation = np.corrcoef(gray.flatten(), alpha_normalized.flatten())[0, 1]
+        try:
+            correlation = np.corrcoef(gray.flatten(), alpha_normalized.flatten())[0, 1]
+            if not np.isnan(correlation):
+                if correlation > 0.5:
+                    score += 20
+                elif correlation > 0.3:
+                    score += 12
+                elif correlation > 0.15:
+                    score += 5
+        except Exception:
+            correlation = 0
 
-        # Method 2: Check brightness in high-alpha regions
+        # =================================================================
+        # Method 3: Brightness Analysis
+        # High-alpha regions should be brighter than low-alpha regions
+        # =================================================================
         high_alpha_mask = alpha_map > 0.3
-        if np.any(high_alpha_mask):
-            mean_brightness = np.mean(gray[high_alpha_mask])
-            brightness_variance = np.std(gray[high_alpha_mask])
-        else:
-            mean_brightness = 0
-            brightness_variance = 0
+        low_alpha_mask = alpha_map < 0.1
 
-        # Method 3: Edge detection - watermark has soft edges
+        if np.any(high_alpha_mask) and np.any(low_alpha_mask):
+            mean_high = np.mean(gray[high_alpha_mask])
+            mean_low = np.mean(gray[low_alpha_mask])
+            brightness_diff = mean_high - mean_low
+
+            # Watermark makes high-alpha regions brighter
+            if brightness_diff > 30:
+                score += 15
+            elif brightness_diff > 15:
+                score += 10
+            elif brightness_diff > 5:
+                score += 5
+
+            # Check uniformity in high-alpha region (watermark is smooth)
+            std_high = np.std(gray[high_alpha_mask])
+            if std_high < 30:
+                score += 10
+            elif std_high < 50:
+                score += 5
+
+        # =================================================================
+        # Method 4: Edge Density Analysis
+        # Watermark has soft edges, not sharp content
+        # =================================================================
         edges = cv2.Canny(roi, 50, 150)
         edge_density = np.sum(edges > 0) / edges.size
 
-        # Decision logic
-        has_watermark = (
-            correlation > 0.3 and  # Positive correlation with alpha pattern
-            mean_brightness > 130 and  # Bright (white logo) - lowered to detect on darker backgrounds
-            brightness_variance < 50 and  # Relatively uniform - relaxed for varied backgrounds
-            edge_density < 0.15  # Soft edges, not sharp content
-        )
+        if edge_density < 0.05:
+            score += 10
+        elif edge_density < 0.10:
+            score += 5
+        elif edge_density > 0.25:
+            score -= 10  # Penalize high edge density (likely real content)
 
-        return has_watermark
+        # =================================================================
+        # Method 5: Gradient Direction Analysis
+        # Watermark has radial gradient from center
+        # =================================================================
+        grad_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+        grad_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+
+        # Calculate gradient pointing toward/away from center
+        center_y, center_x = h // 2, w // 2
+        y_coords, x_coords = np.ogrid[:h, :w]
+        dx = x_coords - center_x
+        dy = y_coords - center_y
+        dist = np.sqrt(dx**2 + dy**2) + 1e-6
+
+        # Normalize direction vectors
+        dx_norm = dx / dist
+        dy_norm = dy / dist
+
+        # Project gradient onto radial direction
+        grad_mag = np.sqrt(grad_x**2 + grad_y**2)
+        radial_component = np.abs(grad_x * dx_norm + grad_y * dy_norm)
+
+        # For radial gradient, radial component should dominate
+        if np.mean(grad_mag) > 1.0:
+            radial_ratio = np.mean(radial_component) / (np.mean(grad_mag) + 1e-6)
+            if radial_ratio > 0.6:
+                score += 10
+            elif radial_ratio > 0.4:
+                score += 5
+
+        # =================================================================
+        # Final Decision
+        # Threshold of 50 provides good balance
+        # =================================================================
+        return score >= 50
 
     def add_watermark(self, image: np.ndarray,
                      force_size: Optional[WatermarkSize] = None,
