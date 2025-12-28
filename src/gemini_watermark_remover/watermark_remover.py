@@ -319,6 +319,14 @@ class WatermarkRemover:
         score = 0.0
 
         # =================================================================
+        # Pre-check: Detect uniform regions (likely plain background)
+        # Uniform regions cause false positives because diff pattern always
+        # correlates with alpha map when the region has no texture
+        # =================================================================
+        roi_std = np.std(gray)
+        is_uniform_region = roi_std < 5.0  # Very low variance = uniform
+
+        # =================================================================
         # Method 1: Differential Analysis (most reliable)
         # Try removing watermark and check if the difference matches alpha pattern
         # =================================================================
@@ -332,7 +340,8 @@ class WatermarkRemover:
         alpha_flat = alpha_map.flatten()
 
         # Only compute correlation if there's variance in both
-        if np.std(diff_flat) > 1.0 and np.std(alpha_flat) > 0.01:
+        # Skip for uniform regions - correlation is meaningless there
+        if np.std(diff_flat) > 1.0 and np.std(alpha_flat) > 0.01 and not is_uniform_region:
             diff_correlation = np.corrcoef(diff_flat, alpha_flat)[0, 1]
             if not np.isnan(diff_correlation):
                 if diff_correlation > 0.7:
@@ -347,9 +356,9 @@ class WatermarkRemover:
         max_diff = np.max(diff_gray)
         mean_diff_high_alpha = np.mean(diff_gray[alpha_map > 0.3]) if np.any(alpha_map > 0.3) else 0
 
-        if 5 < mean_diff_high_alpha < 150:
+        if 5 < mean_diff_high_alpha < 150 and not is_uniform_region:
             score += 15
-        if 10 < max_diff < 200:
+        if 10 < max_diff < 200 and not is_uniform_region:
             score += 10
 
         # =================================================================
