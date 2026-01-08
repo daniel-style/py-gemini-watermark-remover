@@ -324,11 +324,24 @@ class WatermarkRemover:
         # correlates with alpha map when the region has no texture
         # =================================================================
         roi_std = np.std(gray)
-        is_uniform_region = roi_std < 5.0  # Very low variance = uniform
+        is_uniform_region = roi_std < 15.0  # Low variance = uniform/near-uniform
 
         # =================================================================
-        # Method 1: Differential Analysis (most reliable)
+        # Pre-compute: Template Correlation (needed for Method 1 validation)
+        # =================================================================
+        alpha_normalized = (alpha_map * 255).astype(np.float32)
+        try:
+            template_correlation = np.corrcoef(gray.flatten(), alpha_normalized.flatten())[0, 1]
+            if np.isnan(template_correlation):
+                template_correlation = 0
+        except Exception:
+            template_correlation = 0
+
+        # =================================================================
+        # Method 1: Differential Analysis
         # Try removing watermark and check if the difference matches alpha pattern
+        # IMPORTANT: Only trust this if template_correlation is also positive,
+        # otherwise high diff_correlation on non-watermarked images is false positive
         # =================================================================
         recovered = self.remove_watermark_from_region(roi, alpha_map)
         diff = roi.astype(np.float32) - recovered.astype(np.float32)
@@ -341,7 +354,8 @@ class WatermarkRemover:
 
         # Only compute correlation if there's variance in both
         # Skip for uniform regions - correlation is meaningless there
-        if np.std(diff_flat) > 1.0 and np.std(alpha_flat) > 0.01 and not is_uniform_region:
+        # Also require positive template correlation to avoid false positives
+        if np.std(diff_flat) > 1.0 and np.std(alpha_flat) > 0.01 and not is_uniform_region and template_correlation > 0.1:
             diff_correlation = np.corrcoef(diff_flat, alpha_flat)[0, 1]
             if not np.isnan(diff_correlation):
                 if diff_correlation > 0.7:
@@ -356,27 +370,21 @@ class WatermarkRemover:
         max_diff = np.max(diff_gray)
         mean_diff_high_alpha = np.mean(diff_gray[alpha_map > 0.3]) if np.any(alpha_map > 0.3) else 0
 
-        if 5 < mean_diff_high_alpha < 150 and not is_uniform_region:
+        if 5 < mean_diff_high_alpha < 150 and not is_uniform_region and template_correlation > 0.1:
             score += 15
-        if 10 < max_diff < 200 and not is_uniform_region:
+        if 10 < max_diff < 200 and not is_uniform_region and template_correlation > 0.1:
             score += 10
 
         # =================================================================
         # Method 2: Template Correlation
         # Watermark creates brightness pattern matching alpha map
         # =================================================================
-        alpha_normalized = (alpha_map * 255).astype(np.float32)
-        try:
-            correlation = np.corrcoef(gray.flatten(), alpha_normalized.flatten())[0, 1]
-            if not np.isnan(correlation):
-                if correlation > 0.5:
-                    score += 20
-                elif correlation > 0.3:
-                    score += 12
-                elif correlation > 0.15:
-                    score += 5
-        except Exception:
-            correlation = 0
+        if template_correlation > 0.5:
+            score += 20
+        elif template_correlation > 0.3:
+            score += 12
+        elif template_correlation > 0.15:
+            score += 5
 
         # =================================================================
         # Method 3: Brightness Analysis
@@ -416,8 +424,36 @@ class WatermarkRemover:
             score += 10
         elif edge_density < 0.10:
             score += 5
-        elif edge_density > 0.25:
-            score -= 10  # Penalize high edge density (likely real content)
+        elif edge_density > 0.15:
+            score -= 15  # Penalize high edge density (likely real content)
+        elif edge_density > 0.10:
+            score -= 5
+
+        # =================================================================
+        # Method 4b: Color Variance Analysis
+        # Real content often has color variation, watermark is monochrome
+        # =================================================================
+        roi_hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        saturation = roi_hsv[:, :, 1].astype(np.float32)
+        sat_std = np.std(saturation)
+        sat_mean = np.mean(saturation)
+
+        # High saturation variance suggests real colorful content
+        if sat_std > 30 or sat_mean > 50:
+            score -= 15
+
+        # =================================================================
+        # Method 4c: Local Contrast Analysis
+        # Real content has sharp local contrast, watermark is smooth gradient
+        # =================================================================
+        # Use Laplacian to detect sharp transitions
+        laplacian = cv2.Laplacian(gray, cv2.CV_32F)
+        laplacian_std = np.std(np.abs(laplacian))
+
+        if laplacian_std > 20:
+            score -= 15  # Sharp local contrast = real content
+        elif laplacian_std > 10:
+            score -= 5
 
         # =================================================================
         # Method 5: Gradient Direction Analysis
